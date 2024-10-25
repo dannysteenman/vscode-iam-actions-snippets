@@ -1,0 +1,13 @@
+/out/*
+node_modules
+*.vsix
+.mypy_cache
+.python-version
+
+# Ignore everything in the test folder
+/test/*
+
+# But don't ignore these files
+!test/complete-resource-specification.json
+!test/short-resource-specification.json
+!out/README.md
