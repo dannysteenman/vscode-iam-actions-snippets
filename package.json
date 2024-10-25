@@ -1,0 +1,68 @@
+{
+  "name": "iam-actions-snippets",
+  "displayName": "AWS IAM Actions Snippets",
+  "description": "Adds snippets for all the AWS IAM Actions in VS Code.",
+  "author": "Danny Steenman",
+  "version": "1.0.0",
+  "publisher": "dannysteenman",
+  "icon": "images/iam-actions-snippets-extension-icon.png",
+  "homepage": "https://towardsthecloud.com",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dannysteenman/vscode-iam-actions-snippets.git"
+  },
+  "engines": {
+    "vscode": "^1.31.0"
+  },
+  "galleryBanner": {
+    "color": "#2B2C33",
+    "theme": "dark"
+  },
+  "categories": ["Snippets"],
+  "keywords": ["aws", "policy", "iam", "actions", "security"],
+  "badges": [
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/v/dannysteenman.iam-actions-snippets",
+      "href": "https://marketplace.visualstudio.com/items?itemName=dannysteenman.iam-actions-snippets",
+      "description": "Version"
+    },
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/i/dannysteenman.iam-actions-snippets",
+      "href": "https://marketplace.visualstudio.com/items?itemName=dannysteenman.iam-actions-snippets",
+      "description": "Installs"
+    },
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/stars/dannysteenman.iam-actions-snippets",
+      "href": "https://marketplace.visualstudio.com/items?itemName=dannysteenman.iam-actions-snippets",
+      "description": "Rating"
+    }
+  ],
+  "activationEvents": ["onLanguage:yaml", "onLanguage:json"],
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^14.x",
+    "@types/vscode": "^1.31.0",
+    "typescript": "^5.x"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "json",
+        "aliases": ["JSON", "json"],
+        "extensions": [".json", ".template"]
+      },
+      {
+        "id": "yaml",
+        "aliases": ["YAML", "json"],
+        "extensions": [".yaml", ".yml", ".template"]
+      }
+    ]
+  },
+  "extensionDependencies": ["redhat.vscode-yaml"]
+}
