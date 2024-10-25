@@ -55,7 +55,7 @@ This AWS IAM Actions Snippets extension equips Visual Studio Code with comprehen
 
 Example:
 
-![IAM Actions Snippets Example](images/iam-actions-snippets-example.gif)
+![IAM Actions Snippets Example](https://raw.githubusercontent.com/dannysteenman/vscode-iam-actions-snippets/main/images/iam-actions-snippets-example.gif)
 
 > **Note:** If auto-completion doesn't trigger automatically, press `Ctrl+Space` (or `Cmd+Space` on macOS) to manually invoke IntelliSense.
 
