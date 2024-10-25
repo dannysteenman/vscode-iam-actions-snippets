@@ -33,16 +33,27 @@ jobs:
         if: steps.git-check.outputs.changes_exist == 'true'
         run: |
           set -x -e
+          # Configure git
           git config --global user.name 'Github Actions'
           git config --global user.email 'danny@towardsthecloud.com'
+
+          # Update version
           npm version minor --force --no-git-tag-version
-          package_version=$(cat package.json|grep 'version":'|sed 's/[",]//g'|awk '{print $2}')
+          package_version=$(cat package.json | grep 'version":' | sed 's/[",]//g' | awk '{print $2}')
+
+          # Install dependencies and prepare for publishing
           npm install
           npm run vscode:prepublish
-          gitchangelog|tee "CHANGELOG.md"
+
+          # Generate changelog
+          gitchangelog | tee "CHANGELOG.md"
+
+          # Commit and push changes
           git commit -am "build: auto-update snippets to version: $package_version"
-          git tag $package_version
           git push
+
+          # Create and push tag
+          git tag $package_version
           git push origin --tags
       - name: Publish to Visual Studio Marketplace
         if: steps.git-check.outputs.changes_exist == 'true'
