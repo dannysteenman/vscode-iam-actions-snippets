@@ -1,4 +1,4 @@
-import * as fs from 'node:fs';
+import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { CompletionItem, CompletionItemKind, type Disposable, Hover, MarkdownString } from 'vscode';
@@ -15,22 +15,34 @@ interface IamActionData {
 }
 
 class IamActionMappings {
-  private iamActionsMap: Map<string, IamActionData> = new Map();
-  private servicePrefixMap: Map<string, string[]> = new Map();
+  private iamActionsMap: Map<string, IamActionData> | null = null;
+  private servicePrefixMap: Map<string, Set<string>> | null = null;
+  private loadingPromise: Promise<void> | null = null;
 
-  constructor() {
-    this.loadIamActionsMap();
+  private async ensureDataLoaded(): Promise<void> {
+    if (!this.loadingPromise) {
+      this.loadingPromise = this.loadIamActionsMap();
+    }
+    await this.loadingPromise;
   }
 
-  private loadIamActionsMap() {
+  private async loadIamActionsMap(): Promise<void> {
     const filePath = path.join(__dirname, '..', 'snippets', 'iam-actions.json');
     try {
-      const rawData = fs.readFileSync(filePath, 'utf8');
+      const rawData = await fs.readFile(filePath, 'utf8');
       const jsonData = JSON.parse(rawData);
+
+      this.iamActionsMap = new Map();
+      this.servicePrefixMap = new Map();
 
       for (const service in jsonData) {
         const servicePrefix = jsonData[service].service_prefix;
-        this.servicePrefixMap.set(servicePrefix, []);
+        let servicePrefixSet = this.servicePrefixMap.get(servicePrefix);
+
+        if (!servicePrefixSet) {
+          servicePrefixSet = new Set<string>();
+          this.servicePrefixMap.set(servicePrefix, servicePrefixSet);
+        }
 
         for (const action in jsonData[service].actions) {
           const actionData = jsonData[service].actions[action];
@@ -39,12 +51,7 @@ class IamActionMappings {
             condition_keys: actionData.condition_keys || [],
             resource_types: actionData.resource_types || [],
           });
-          const servicePrefixActions = this.servicePrefixMap.get(servicePrefix);
-          if (servicePrefixActions) {
-            servicePrefixActions.push(actionData.action_name);
-          } else {
-            this.servicePrefixMap.set(servicePrefix, [actionData.action_name]);
-          }
+          servicePrefixSet.add(actionData.action_name);
         }
       }
 
@@ -56,19 +63,38 @@ class IamActionMappings {
     }
   }
 
-  public getIamActionData(action: string): IamActionData | undefined {
-    return this.iamActionsMap.get(action);
+  public async getIamActionData(action: string): Promise<IamActionData | undefined> {
+    await this.ensureDataLoaded();
+    if (this.iamActionsMap) {
+      return this.iamActionsMap.get(action);
+    }
+    return undefined;
   }
 
-  public getMatchingActions(wildcardAction: string): string[] {
+  public async getMatchingActions(wildcardAction: string): Promise<string[]> {
+    await this.ensureDataLoaded();
+
+    if (!this.servicePrefixMap) {
+      return [];
+    }
+
     const [servicePrefix, actionPattern] = wildcardAction.split(':');
     const regex = new RegExp(`^${actionPattern.replace('*', '.*')}$`);
 
-    const serviceActions = this.servicePrefixMap.get(servicePrefix) || [];
-    return serviceActions.filter((action) => regex.test(action.split(':')[1]));
+    const serviceActions = this.servicePrefixMap.get(servicePrefix) || new Set<string>();
+    return Array.from(serviceActions).filter((action) => {
+      const parts = action.split(':');
+      return parts.length > 1 && regex.test(parts[1]);
+    });
   }
 
-  public getAllIamActions(): string[] {
+  public async getAllIamActions(): Promise<string[]> {
+    await this.ensureDataLoaded();
+
+    if (!this.iamActionsMap) {
+      return [];
+    }
+
     return Array.from(this.iamActionsMap.keys());
   }
 }
@@ -83,13 +109,13 @@ export function activate(context: vscode.ExtensionContext) {
   // Register completion provider
   disposable.push(
     vscode.languages.registerCompletionItemProvider(['yaml', 'yml', 'json'], {
-      provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
-        if (isBelowActionKey(document, position)) {
+      async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
+        if (await isBelowActionKey(document, position)) {
           outputChannel.appendLine(`Providing completion items at position: ${position.line}:${position.character}`);
-          return iamActionMappings
-            .getAllIamActions()
-            .map((action) => {
-              const actionData = iamActionMappings.getIamActionData(action);
+          const allActions = await iamActionMappings.getAllIamActions();
+          return Promise.all(
+            allActions.map(async (action) => {
+              const actionData = await iamActionMappings.getIamActionData(action);
               if (actionData) {
                 const item = new CompletionItem(action, CompletionItemKind.Value);
                 item.detail = `IAM Action: ${action.split(':')[1]} (${actionData.access_level})`;
@@ -117,8 +143,8 @@ export function activate(context: vscode.ExtensionContext) {
                 return item;
               }
               return null;
-            })
-            .filter((item): item is CompletionItem => item !== null);
+            }),
+          ).then((items) => items.filter((item): item is CompletionItem => item !== null));
         }
         return undefined;
       },
@@ -128,7 +154,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Register hover provider
   disposable.push(
     vscode.languages.registerHoverProvider(['yaml', 'yml', 'json'], {
-      provideHover(document: vscode.TextDocument, position: vscode.Position) {
+      async provideHover(document: vscode.TextDocument, position: vscode.Position) {
         const actionRegex = /[a-zA-Z0-9]+:[a-zA-Z0-9*]+/;
         const range = document.getWordRangeAtPosition(position, actionRegex);
 
@@ -137,7 +163,7 @@ export function activate(context: vscode.ExtensionContext) {
           outputChannel.appendLine(`Providing hover for: ${word}`);
 
           if (word.includes('*')) {
-            const matchingActions = iamActionMappings.getMatchingActions(word);
+            const matchingActions = await iamActionMappings.getMatchingActions(word);
             if (matchingActions.length > 0) {
               const content = new MarkdownString();
               content.isTrusted = true;
@@ -146,7 +172,7 @@ export function activate(context: vscode.ExtensionContext) {
               content.appendMarkdown('|:-------|:------------|\n');
 
               for (const action of matchingActions) {
-                const actionData = iamActionMappings.getIamActionData(action);
+                const actionData = await iamActionMappings.getIamActionData(action);
                 if (actionData) {
                   const description = actionData.description.replace(/\n/g, ' ');
                   const actionColumn = `[${action}](${actionData.url}) (${actionData.access_level})`;
@@ -156,7 +182,7 @@ export function activate(context: vscode.ExtensionContext) {
               return new Hover(content);
             }
           } else {
-            const actionData = iamActionMappings.getIamActionData(word);
+            const actionData = await iamActionMappings.getIamActionData(word);
             if (actionData) {
               const content = new MarkdownString();
               content.isTrusted = true;
@@ -205,32 +231,35 @@ export function deactivate() {
   outputChannel.appendLine('IAM Action Snippets extension deactivated');
 }
 
-function isBelowActionKey(document: vscode.TextDocument, position: vscode.Position): boolean {
+async function isBelowActionKey(document: vscode.TextDocument, position: vscode.Position): Promise<boolean> {
   const maxLinesUp = 10;
   const startLine = Math.max(0, position.line - maxLinesUp);
+  const text = document.getText(new vscode.Range(startLine, 0, position.line, position.character));
 
-  for (let i = position.line; i >= startLine; i--) {
-    const line = document.lineAt(i).text.trim().toLowerCase();
-
-    if (document.languageId === 'json') {
-      if (line.includes('"action":') && line.includes('[')) {
-        return true;
-      }
-      if (line.includes(']')) break;
-    } else if (document.languageId === 'yaml' || document.languageId === 'yml') {
+  if (document.languageId === 'json') {
+    return /"action":\s*\[/.test(text) && !/\]/.test(text.split('"action":')[1]);
+  }
+  if (document.languageId === 'yaml' || document.languageId === 'yml') {
+    const lines = text.split('\n').reverse();
+    for (const line of lines) {
+      const trimmedLine = line.trim().toLowerCase();
       if (
-        line.startsWith('action:') ||
-        line.startsWith('- action:') ||
-        line.startsWith('notaction:') ||
-        line.startsWith('- notaction:')
+        trimmedLine.startsWith('action:') ||
+        trimmedLine.startsWith('- action:') ||
+        trimmedLine.startsWith('notaction:') ||
+        trimmedLine.startsWith('- notaction:')
       ) {
         return true;
       }
-      if (line !== '' && !line.startsWith('-') && !line.startsWith('- ') && !line.startsWith('#')) {
+      if (
+        trimmedLine !== '' &&
+        !trimmedLine.startsWith('-') &&
+        !trimmedLine.startsWith('- ') &&
+        !trimmedLine.startsWith('#')
+      ) {
         break;
       }
     }
   }
-
   return false;
 }
