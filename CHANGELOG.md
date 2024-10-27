@@ -4,6 +4,16 @@ Changelog
 
 (unreleased)
 ------------
+- Style: compress JSON arrays in package.json. [Danny Steenman]
+- Test: add json and yaml test files. [Danny Steenman]
+- Feat: add speed optimizations like async and lazyload. [Danny
+  Steenman]
+- Feat: add hyperlinks for conditioning keys and resource types. [Danny
+  Steenman]
+
+
+1.3.0 (2024-10-27)
+------------------
 
 Fix
 ~~~
@@ -12,6 +22,7 @@ Fix
 
 Other
 ~~~~~
+- Build: auto-update snippets to version: 1.3.0. [Github Actions]
 - Feat: add support for resource types and condition keys. [Danny
   Steenman]
 - Build: auto-update snippets to version: 1.2.0. [Github Actions]
