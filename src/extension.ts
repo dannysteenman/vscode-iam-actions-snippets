@@ -10,8 +10,8 @@ interface IamActionData {
   action_name: string;
   description: string;
   url: string;
-  condition_keys: string[];
-  resource_types: string[];
+  condition_keys: Array<{ name: string; reference_href: string }>;
+  resource_types: Array<{ name: string; reference_href: string }>;
 }
 
 class IamActionMappings {
@@ -166,14 +166,20 @@ export function activate(context: vscode.ExtensionContext) {
                 { header: 'Description', data: actionData.description.replace(/\n/g, ' ') },
               ];
 
-              // Only add Resource Types if not empty
+              // Add Resource Types with hyperlinks if not empty
               if (actionData.resource_types.length > 0) {
-                columns.push({ header: 'Resources', data: actionData.resource_types.join(', ') });
+                const resourceLinks = actionData.resource_types
+                  .map((resource) => `[${resource.name}](${resource.reference_href})`)
+                  .join(', ');
+                columns.push({ header: 'Resources', data: resourceLinks });
               }
 
-              // Only add Condition Keys if not empty
+              // Add Condition Keys with hyperlinks if not empty
               if (actionData.condition_keys.length > 0) {
-                columns.push({ header: 'Condition Keys', data: actionData.condition_keys.join(', ') });
+                const conditionLinks = actionData.condition_keys
+                  .map((condition) => `[${condition.name}](${condition.reference_href})`)
+                  .join(', ');
+                columns.push({ header: 'Condition Keys', data: conditionLinks });
               }
 
               // Create table headers

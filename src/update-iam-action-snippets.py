@@ -80,7 +80,7 @@ def scrape_service_actions(service_url):
                     url = urljoin(service_url, action_link.get("href", ""))
                     action_name = f"{prefix}:{current_action}" if prefix else current_action
                     actions[current_action] = {
-                        "action_name": action_name,  # This now includes the prefix
+                        "action_name": action_name,
                         "description": description,
                         "access_level": access_level,
                         "resource_types": [],
@@ -89,23 +89,45 @@ def scrape_service_actions(service_url):
                     }
 
                     # Process resource types
-                    resource_type = cells[3].text.strip()
-                    if resource_type:
+                    resource_type_cell = cells[3]
+                    resource_type_links = resource_type_cell.find_all("a")
+                    for link in resource_type_links:
+                        resource_type = {
+                            "name": link.text.strip(),
+                            "reference_href": urljoin(service_url, link.get("href", "")),
+                        }
                         actions[current_action]["resource_types"].append(resource_type)
 
                     # Process condition keys
-                    condition_keys = [p.text.strip() for p in cells[4].find_all("p")]
-                    actions[current_action]["condition_keys"].extend(condition_keys)
+                    condition_key_cell = cells[4]
+                    condition_key_links = condition_key_cell.find_all("a")
+                    for link in condition_key_links:
+                        condition_key = {
+                            "name": link.text.strip(),
+                            "reference_href": urljoin(service_url, link.get("href", "")),
+                        }
+                        actions[current_action]["condition_keys"].append(condition_key)
 
             elif len(cells) == 3 and current_action:  # This is a continuation row
                 # Process additional resource types
-                resource_type = cells[0].text.strip()
-                if resource_type:
+                resource_type_cell = cells[0]
+                resource_type_links = resource_type_cell.find_all("a")
+                for link in resource_type_links:
+                    resource_type = {
+                        "name": link.text.strip(),
+                        "reference_href": urljoin(service_url, link.get("href", "")),
+                    }
                     actions[current_action]["resource_types"].append(resource_type)
 
                 # Process additional condition keys
-                condition_keys = [p.text.strip() for p in cells[1].find_all("p")]
-                actions[current_action]["condition_keys"].extend(condition_keys)
+                condition_key_cell = cells[1]
+                condition_key_links = condition_key_cell.find_all("a")
+                for link in condition_key_links:
+                    condition_key = {
+                        "name": link.text.strip(),
+                        "reference_href": urljoin(service_url, link.get("href", "")),
+                    }
+                    actions[current_action]["condition_keys"].append(condition_key)
 
         return actions, prefix, service_name, service_url
     except Exception as e:
