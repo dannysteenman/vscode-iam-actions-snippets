@@ -60,28 +60,52 @@ def scrape_service_actions(service_url):
                     prefix = code_tag.text.strip()
                     break
 
-        table = soup.find("table", id=lambda x: x and x.startswith("w"))
-        if table:
-            for row in table.find_all("tr")[1:]:  # Skip the header row
-                cells = row.find_all("td")
-                if len(cells) >= 3:  # Ensure we have at least 3 cells (action, description, access level)
-                    action_cell = cells[0]
-                    action_link = action_cell.find("a")
-                    if action_link:
-                        action = action_link.text.strip()
-                        description = cells[1].text.strip()
-                        access_level = cells[2].text.strip()
+        # Find the actions table
+        action_table = soup.find("div", class_="table-container").find("table")
+        if not action_table:
+            return {}, prefix, service_name, service_url
 
-                        # Only add the action if it has a defined access level
-                        if access_level:
-                            url = urljoin(service_url, action_link["href"])
-                            action_name = f"{prefix}:{action}" if prefix else action
-                            actions[action] = {
-                                "action_name": action_name,
-                                "description": description,
-                                "access_level": access_level,
-                                "url": url,
-                            }
+        rows = action_table.find_all("tr")[1:]  # Skip header row
+        current_action = None
+
+        for row in rows:
+            cells = row.find_all("td")
+            if len(cells) == 6:  # This is a new action row
+                action_cell = cells[0]
+                action_link = action_cell.find("a")
+                if action_link:
+                    current_action = action_link.text.strip()
+                    description = cells[1].text.strip()
+                    access_level = cells[2].text.strip()
+                    url = urljoin(service_url, action_link.get("href", ""))
+                    action_name = f"{prefix}:{current_action}" if prefix else current_action
+                    actions[current_action] = {
+                        "action_name": action_name,  # This now includes the prefix
+                        "description": description,
+                        "access_level": access_level,
+                        "resource_types": [],
+                        "condition_keys": [],
+                        "url": url,
+                    }
+
+                    # Process resource types
+                    resource_type = cells[3].text.strip()
+                    if resource_type:
+                        actions[current_action]["resource_types"].append(resource_type)
+
+                    # Process condition keys
+                    condition_keys = [p.text.strip() for p in cells[4].find_all("p")]
+                    actions[current_action]["condition_keys"].extend(condition_keys)
+
+            elif len(cells) == 3 and current_action:  # This is a continuation row
+                # Process additional resource types
+                resource_type = cells[0].text.strip()
+                if resource_type:
+                    actions[current_action]["resource_types"].append(resource_type)
+
+                # Process additional condition keys
+                condition_keys = [p.text.strip() for p in cells[1].find_all("p")]
+                actions[current_action]["condition_keys"].extend(condition_keys)
 
         return actions, prefix, service_name, service_url
     except Exception as e:
@@ -99,8 +123,7 @@ def scrape_service(service_name, service_url):
     actions, prefix, scraped_name, reference_url = scrape_service_actions(service_url)
     if actions:
         return service_key, {
-            "serviceName": scraped_name
-            or service_name,  # Use scraped name if available, otherwise use the provided name
+            "serviceName": scraped_name or service_name,
             "service_prefix": prefix,
             "actions": actions,
             "reference_url": reference_url,

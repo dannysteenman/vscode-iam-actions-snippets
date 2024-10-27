@@ -10,6 +10,8 @@ interface IamActionData {
   action_name: string;
   description: string;
   url: string;
+  condition_keys: string[];
+  resource_types: string[];
 }
 
 class IamActionMappings {
@@ -32,8 +34,17 @@ class IamActionMappings {
 
         for (const action in jsonData[service].actions) {
           const actionData = jsonData[service].actions[action];
-          this.iamActionsMap.set(actionData.action_name, actionData);
-          this.servicePrefixMap.get(servicePrefix)!.push(actionData.action_name);
+          this.iamActionsMap.set(actionData.action_name, {
+            ...actionData,
+            condition_keys: actionData.condition_keys || [],
+            resource_types: actionData.resource_types || [],
+          });
+          const servicePrefixActions = this.servicePrefixMap.get(servicePrefix);
+          if (servicePrefixActions) {
+            servicePrefixActions.push(actionData.action_name);
+          } else {
+            this.servicePrefixMap.set(servicePrefix, [actionData.action_name]);
+          }
         }
       }
 
@@ -97,7 +108,7 @@ export function activate(context: vscode.ExtensionContext) {
                   item.insertText = isFirstItem || isLastItem ? `"${action}"` : `"${action}",`;
 
                   if (!isFirstItem && !isLastItem && !currentLineStripped.endsWith(',')) {
-                    item.insertText = ',' + item.insertText;
+                    item.insertText = `${!isFirstItem && !isLastItem && !currentLineStripped.endsWith(',') ? ',' : ''}${item.insertText}`;
                   }
                 } else {
                   item.insertText = action;
@@ -128,11 +139,18 @@ export function activate(context: vscode.ExtensionContext) {
           if (word.includes('*')) {
             const matchingActions = iamActionMappings.getMatchingActions(word);
             if (matchingActions.length > 0) {
-              const content = new MarkdownString('**Matching IAM Actions:**\n\n');
+              const content = new MarkdownString();
+              content.isTrusted = true;
+
+              content.appendMarkdown('| Matching IAM Actions | Description |\n');
+              content.appendMarkdown('|:-------|:------------|\n');
+
               for (const action of matchingActions) {
                 const actionData = iamActionMappings.getIamActionData(action);
                 if (actionData) {
-                  content.appendMarkdown(`- ${action} (${actionData.access_level}): ${actionData.description}\n`);
+                  const description = actionData.description.replace(/\n/g, ' ');
+                  const actionColumn = `[${action}](${actionData.url}) (${actionData.access_level})`;
+                  content.appendMarkdown(`| ${actionColumn} | ${description} |\n`);
                 }
               }
               return new Hover(content);
@@ -141,10 +159,30 @@ export function activate(context: vscode.ExtensionContext) {
             const actionData = iamActionMappings.getIamActionData(word);
             if (actionData) {
               const content = new MarkdownString();
-              content.appendMarkdown(`**IAM Action:** ${word}\n\n`);
-              content.appendMarkdown(`**Access Level:** ${actionData.access_level}\n\n`);
-              content.appendMarkdown(`**Description:** ${actionData.description}\n\n`);
-              content.appendMarkdown(`[Documentation](${actionData.url})`);
+              content.isTrusted = true;
+
+              const columns = [
+                { header: 'IAM Action', data: `[${word}](${actionData.url}) (${actionData.access_level})` },
+                { header: 'Description', data: actionData.description.replace(/\n/g, ' ') },
+              ];
+
+              // Only add Resource Types if not empty
+              if (actionData.resource_types.length > 0) {
+                columns.push({ header: 'Resources', data: actionData.resource_types.join(', ') });
+              }
+
+              // Only add Condition Keys if not empty
+              if (actionData.condition_keys.length > 0) {
+                columns.push({ header: 'Condition Keys', data: actionData.condition_keys.join(', ') });
+              }
+
+              // Create table headers
+              content.appendMarkdown(`| ${columns.map((col) => col.header).join(' | ')} |\n`);
+              content.appendMarkdown(`| ${columns.map(() => ':---').join(' | ')} |\n`);
+
+              // Create table row
+              content.appendMarkdown(`| ${columns.map((col) => col.data).join(' | ')} |\n`);
+
               return new Hover(content);
             }
           }
@@ -162,7 +200,7 @@ export function deactivate() {
 }
 
 function isBelowActionKey(document: vscode.TextDocument, position: vscode.Position): boolean {
-  const maxLinesUp = 10; // Adjust this value as needed
+  const maxLinesUp = 10;
   const startLine = Math.max(0, position.line - maxLinesUp);
 
   for (let i = position.line; i >= startLine; i--) {
@@ -172,7 +210,7 @@ function isBelowActionKey(document: vscode.TextDocument, position: vscode.Positi
       if (line.includes('"action":') && line.includes('[')) {
         return true;
       }
-      if (line.includes(']')) break; // We've reached the end of the Action array
+      if (line.includes(']')) break;
     } else if (document.languageId === 'yaml' || document.languageId === 'yml') {
       if (
         line.startsWith('action:') ||
@@ -183,7 +221,7 @@ function isBelowActionKey(document: vscode.TextDocument, position: vscode.Positi
         return true;
       }
       if (line !== '' && !line.startsWith('-') && !line.startsWith('- ') && !line.startsWith('#')) {
-        break; // We've reached a different key
+        break;
       }
     }
   }
