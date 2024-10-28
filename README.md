@@ -53,9 +53,13 @@ This AWS IAM Actions Snippets extension equips Visual Studio Code with comprehen
 4. The extension will provide auto-completion suggestions for matching IAM actions.
 5. Select the desired action to insert it into your policy.
 
-Example:
+Example of auto-completion in action:
 
-![IAM Actions Snippets Example](https://raw.githubusercontent.com/dannysteenman/vscode-iam-actions-snippets/main/images/iam-actions-snippets-example.gif)
+![IAM Actions Snippets Autocomplete Example](https://raw.githubusercontent.com/dannysteenman/vscode-iam-actions-snippets/main/images/iam-actions-snippets-autocomplete-example.gif)
+
+and an example of the hover information:
+
+![IAM Actions Snippets Hover Example](https://raw.githubusercontent.com/dannysteenman/vscode-iam-actions-snippets/main/images/iam-actions-snippets-hover-example.gif)
 
 > **Note:** If auto-completion doesn't trigger automatically, press `Ctrl+Space` (or `Cmd+Space` on macOS) to manually invoke IntelliSense.
 
