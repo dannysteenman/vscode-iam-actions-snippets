@@ -4,6 +4,20 @@ Changelog
 
 (unreleased)
 ------------
+
+Fix
+~~~
+- Autocompletion items for json file types. [Danny Steenman]
+
+Other
+~~~~~
+- Docs: update README with new GIF examples. [Danny Steenman]
+- Chore: update s3 policy resources and role name. [Danny Steenman]
+
+
+1.4.0 (2024-10-27)
+------------------
+- Build: auto-update snippets to version: 1.4.0. [Github Actions]
 - Style: compress JSON arrays in package.json. [Danny Steenman]
 - Test: add json and yaml test files. [Danny Steenman]
 - Feat: add speed optimizations like async and lazyload. [Danny
