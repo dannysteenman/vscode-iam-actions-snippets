@@ -108,47 +108,71 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register completion provider
   disposable.push(
-    vscode.languages.registerCompletionItemProvider(['yaml', 'yml', 'json'], {
-      async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
-        if (await isBelowActionKey(document, position)) {
-          outputChannel.appendLine(`Providing completion items at position: ${position.line}:${position.character}`);
-          const allActions = await iamActionMappings.getAllIamActions();
-          return Promise.all(
-            allActions.map(async (action) => {
-              const actionData = await iamActionMappings.getIamActionData(action);
-              if (actionData) {
-                const item = new CompletionItem(action, CompletionItemKind.Value);
-                item.detail = `IAM Action: ${action.split(':')[1]} (${actionData.access_level})`;
-                item.documentation = new MarkdownString(`${actionData.description}\n\n${actionData.url}`);
+    vscode.languages.registerCompletionItemProvider(
+      ['json', 'yaml', 'yml'],
+      {
+        async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
+          if (await isBelowActionKey(document, position)) {
+            outputChannel.appendLine(`Providing completion items at position: ${position.line}:${position.character}`);
+            const allActions = await iamActionMappings.getAllIamActions();
+            return Promise.all(
+              allActions.map(async (action) => {
+                const actionData = await iamActionMappings.getIamActionData(action);
+                if (actionData) {
+                  const item = new vscode.CompletionItem(action, vscode.CompletionItemKind.Value);
+                  item.detail = `IAM Action: ${action.split(':')[1]} (${actionData.access_level})`;
+                  item.documentation = new vscode.MarkdownString(`${actionData.description}\n\n${actionData.url}`);
 
-                if (document.languageId === 'json') {
-                  const lineText = document.lineAt(position.line).text;
-                  const currentLineStripped = lineText.replace(/\s/g, '');
-                  const nextLineText =
-                    position.line + 1 < document.lineCount ? document.lineAt(position.line + 1).text : '';
-                  const nextLineStripped = nextLineText.replace(/\s/g, '');
+                  if (document.languageId === 'json') {
+                    const lineText = document.lineAt(position.line).text;
+                    const currentLineStripped = lineText.trim();
+                    const nextLineText =
+                      position.line + 1 < document.lineCount ? document.lineAt(position.line + 1).text : '';
+                    const nextLineStripped = nextLineText.trim();
 
-                  const isLastItem = currentLineStripped.endsWith(']') || nextLineStripped.startsWith(']');
-                  const isFirstItem = currentLineStripped.endsWith('[') || lineText.trim() === '';
+                    const isInQuotes =
+                      currentLineStripped.indexOf('"') !== -1 &&
+                      currentLineStripped.lastIndexOf('"') > currentLineStripped.indexOf('"');
+                    const isFirstItem = currentLineStripped.endsWith('[') || currentLineStripped === '';
+                    const isLastItem = currentLineStripped.endsWith(']') || nextLineStripped.startsWith(']');
 
-                  item.insertText = isFirstItem || isLastItem ? `"${action}"` : `"${action}",`;
-
-                  if (!isFirstItem && !isLastItem && !currentLineStripped.endsWith(',')) {
-                    item.insertText = `${!isFirstItem && !isLastItem && !currentLineStripped.endsWith(',') ? ',' : ''}${item.insertText}`;
+                    if (!isInQuotes) {
+                      let insertText = `"${action}"`;
+                      if (isFirstItem && currentLineStripped.endsWith('[')) {
+                        insertText = '\n  ' + insertText;
+                      }
+                      if (!isLastItem && !currentLineStripped.endsWith(',') && !currentLineStripped.endsWith('[')) {
+                        insertText += ',';
+                      }
+                      item.insertText = insertText;
+                    } else {
+                      // When in quotes, just insert the action name
+                      item.insertText = action;
+                      if (!isLastItem) {
+                        // Add only a comma after the action when it's not the last item
+                        item.additionalTextEdits = [
+                          vscode.TextEdit.insert(
+                            new vscode.Position(position.line, position.character + action.length),
+                            ',',
+                          ),
+                        ];
+                      }
+                    }
+                  } else {
+                    item.insertText = action;
                   }
-                } else {
-                  item.insertText = action;
-                }
 
-                return item;
-              }
-              return null;
-            }),
-          ).then((items) => items.filter((item): item is CompletionItem => item !== null));
-        }
-        return undefined;
+                  return item;
+                }
+                return null;
+              }),
+            ).then((items) => items.filter((item): item is vscode.CompletionItem => item !== null));
+          }
+          return undefined;
+        },
       },
-    }),
+      '"', // Trigger when typing a quote
+    ),
   );
 
   // Register hover provider
@@ -232,13 +256,23 @@ export function deactivate() {
 }
 
 async function isBelowActionKey(document: vscode.TextDocument, position: vscode.Position): Promise<boolean> {
-  const maxLinesUp = 10;
+  const maxLinesUp = 40;
   const startLine = Math.max(0, position.line - maxLinesUp);
   const text = document.getText(new vscode.Range(startLine, 0, position.line, position.character));
 
   if (document.languageId === 'json') {
-    return /"action":\s*\[/.test(text) && !/\]/.test(text.split('"action":')[1]);
+    const lines = text.split('\n').reverse();
+    for (const line of lines) {
+      const trimmedLine = line.trim().toLowerCase();
+      if (trimmedLine.includes('"action"') && trimmedLine.includes('[')) {
+        return true;
+      }
+      if (trimmedLine.startsWith('}') || trimmedLine.startsWith(']')) {
+        break;
+      }
+    }
   }
+
   if (document.languageId === 'yaml' || document.languageId === 'yml') {
     const lines = text.split('\n').reverse();
     for (const line of lines) {
