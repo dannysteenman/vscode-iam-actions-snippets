@@ -4,6 +4,11 @@ Changelog
 
 (unreleased)
 ------------
+- Ci: update actions to latest versions. [Danny Steenman]
+
+
+1.5.0 (2024-10-28)
+------------------
 
 Fix
 ~~~
@@ -11,6 +16,7 @@ Fix
 
 Other
 ~~~~~
+- Build: auto-update snippets to version: 1.5.0. [Github Actions]
 - Docs: update README with new GIF examples. [Danny Steenman]
 - Chore: update s3 policy resources and role name. [Danny Steenman]
 
