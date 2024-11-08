@@ -2,8 +2,9 @@ Changelog
 =========
 
 
-(unreleased)
-------------
+1.6.0 (2024-11-01)
+------------------
+- Build: auto-update snippets to version: 1.6.0. [Github Actions]
 - Ci: update actions to latest versions. [Danny Steenman]
 
 
