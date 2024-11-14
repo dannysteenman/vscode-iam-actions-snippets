@@ -2,6 +2,16 @@ Changelog
 =========
 
 
+(unreleased)
+------------
+- Feat: add support for terraform. [Danny Steenman]
+
+
+1.7.0 (2024-11-08)
+------------------
+- Build: auto-update snippets to version: 1.7.0. [Github Actions]
+
+
 1.6.0 (2024-11-01)
 ------------------
 - Build: auto-update snippets to version: 1.6.0. [Github Actions]
