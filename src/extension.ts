@@ -109,7 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Register completion provider
   disposable.push(
     vscode.languages.registerCompletionItemProvider(
-      ['json', 'yaml', 'yml'],
+      ['json', 'yaml', 'yml', 'terraform'],
       {
         async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
           if (await isBelowActionKey(document, position)) {
@@ -123,7 +123,7 @@ export function activate(context: vscode.ExtensionContext) {
                   item.detail = `IAM Action: ${action.split(':')[1]} (${actionData.access_level})`;
                   item.documentation = new vscode.MarkdownString(`${actionData.description}\n\n${actionData.url}`);
 
-                  if (document.languageId === 'json') {
+                  if (document.languageId === 'json' || document.languageId === 'terraform') {
                     const lineText = document.lineAt(position.line).text;
                     const currentLineStripped = lineText.trim();
                     const nextLineText =
@@ -177,7 +177,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register hover provider
   disposable.push(
-    vscode.languages.registerHoverProvider(['yaml', 'yml', 'json'], {
+    vscode.languages.registerHoverProvider(['yaml', 'yml', 'json', 'terraform'], {
       async provideHover(document: vscode.TextDocument, position: vscode.Position) {
         const actionRegex = /[a-zA-Z0-9]+:[a-zA-Z0-9*]+/;
         const range = document.getWordRangeAtPosition(position, actionRegex);
@@ -260,12 +260,18 @@ async function isBelowActionKey(document: vscode.TextDocument, position: vscode.
   const startLine = Math.max(0, position.line - maxLinesUp);
   const text = document.getText(new vscode.Range(startLine, 0, position.line, position.character));
 
-  if (document.languageId === 'json') {
+  if (document.languageId === 'json' || document.languageId === 'terraform') {
     const lines = text.split('\n').reverse();
     for (const line of lines) {
       const trimmedLine = line.trim().toLowerCase();
-      if (trimmedLine.includes('"action"') && trimmedLine.includes('[')) {
-        return true;
+      if (document.languageId === 'json') {
+        if (trimmedLine.includes('"action"') && trimmedLine.includes('[')) {
+          return true;
+        }
+      } else if (document.languageId === 'terraform') {
+        if (trimmedLine.includes('action') && trimmedLine.includes('=') && trimmedLine.includes('[')) {
+          return true;
+        }
       }
       if (trimmedLine.startsWith('}') || trimmedLine.startsWith(']')) {
         break;

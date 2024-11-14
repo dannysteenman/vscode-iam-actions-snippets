@@ -41,14 +41,14 @@ This AWS IAM Actions Snippets extension equips Visual Studio Code with comprehen
 1. **Comprehensive Coverage**: Offers snippets for **all** AWS IAM actions available across various AWS services.
 2. **Auto-completion**: Provides intelligent auto-completion for IAM actions as you type.
 3. **Documentation Links**: Quick access to AWS documentation for each IAM action directly from the snippet.
-4. **Flexible Support**: Works seamlessly with both YAML and JSON IAM policy documents.
+4. **Flexible Format Support**: Supports IAM policies in JSON, but also IAM Policies defined in CloudFormation templates (`.json, .yaml`), and Terraform files (`.tf`).
 5. **Up-to-Date**: Regularly updated to reflect the latest AWS IAM actions.
 6. **Smart Hover Information**: When hovering over wildcard actions, displays all matching IAM actions, providing a comprehensive view of the permissions covered.
 
 ## Usage
 
 1. Install the AWS IAM Actions Snippets extension in VS Code.
-2. Open or create a new `.json` or `.yml` file for your IAM policy.
+2. Open or create a new `.json`, `.yml`, or `.tf` file for your IAM policy.
 3. Start typing an IAM action name (e.g., `s3:Get`) in the appropriate place in your policy.
 4. The extension will provide auto-completion suggestions for matching IAM actions.
 5. Select the desired action to insert it into your policy.

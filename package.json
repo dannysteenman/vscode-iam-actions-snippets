@@ -48,7 +48,8 @@
   ],
   "activationEvents": [
     "onLanguage:yaml",
-    "onLanguage:json"
+    "onLanguage:json",
+    "onLanguage:terraform"
   ],
   "main": "./out/extension.js",
   "scripts": {
@@ -78,12 +79,23 @@
         "id": "yaml",
         "aliases": [
           "YAML",
-          "json"
+          "yaml"
         ],
         "extensions": [
           ".yaml",
           ".yml",
           ".template"
+        ]
+      },
+      {
+        "id": "terraform",
+        "aliases": [
+          "Terraform",
+          "terraform"
+        ],
+        "extensions": [
+          ".tf",
+          ".tfvars"
         ]
       }
     ]
