@@ -2,8 +2,9 @@ Changelog
 =========
 
 
-(unreleased)
-------------
+1.8.0 (2024-11-14)
+------------------
+- Build: auto-update snippets to version: 1.8.0. [Github Actions]
 - Feat: add support for terraform. [Danny Steenman]
 
 
