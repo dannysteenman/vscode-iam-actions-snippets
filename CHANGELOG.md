@@ -2,6 +2,11 @@ Changelog
 =========
 
 
+1.11.0 (2024-11-29)
+-------------------
+- Build: auto-update snippets to version: 1.11.0. [Github Actions]
+
+
 1.10.0 (2024-11-22)
 -------------------
 - Build: auto-update snippets to version: 1.10.0. [Github Actions]
