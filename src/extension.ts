@@ -79,7 +79,7 @@ class IamActionMappings {
     }
 
     const [servicePrefix, actionPattern] = wildcardAction.split(':');
-    const regex = new RegExp(`^${actionPattern.replace('*', '.*')}$`);
+    const regex = new RegExp(`^${actionPattern.replace(/\*/g, '.*')}$`, 'i');
 
     const serviceActions = this.servicePrefixMap.get(servicePrefix) || new Set<string>();
     return Array.from(serviceActions).filter((action) => {
@@ -192,17 +192,21 @@ export function activate(context: vscode.ExtensionContext) {
               const content = new MarkdownString();
               content.isTrusted = true;
 
-              content.appendMarkdown('| Matching IAM Actions | Description |\n');
-              content.appendMarkdown('|:-------|:------------|\n');
+              content.appendMarkdown(`### Matching IAM Actions for "${word}"\n\n`);
+              content.appendMarkdown('| Action | Description | Access Level |\n');
+              content.appendMarkdown('|:-------|:------------|:-------------|\n');
 
               for (const action of matchingActions) {
                 const actionData = await iamActionMappings.getIamActionData(action);
                 if (actionData) {
                   const description = actionData.description.replace(/\n/g, ' ');
-                  const actionColumn = `[${action}](${actionData.url}) (${actionData.access_level})`;
-                  content.appendMarkdown(`| ${actionColumn} | ${description} |\n`);
+                  const actionColumn = `[${action}](${actionData.url})`;
+                  content.appendMarkdown(`| ${actionColumn} | ${description} | ${actionData.access_level} |\n`);
                 }
               }
+
+              content.appendMarkdown(`\n**Total matching actions:** ${matchingActions.length}`);
+
               return new Hover(content);
             }
           } else {
