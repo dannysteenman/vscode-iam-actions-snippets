@@ -2,6 +2,17 @@ Changelog
 =========
 
 
+(unreleased)
+------------
+- Feat(vscode-extension): Improve IAM action hover with enhanced
+  markdown display. [Danny Steenman]
+
+
+1.15.0 (2025-01-10)
+-------------------
+- Build: auto-update snippets to version: 1.15.0. [Github Actions]
+
+
 1.14.0 (2024-12-27)
 -------------------
 - Build: auto-update snippets to version: 1.14.0. [Github Actions]
