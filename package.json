@@ -47,9 +47,11 @@
     }
   ],
   "activationEvents": [
-    "onLanguage:yaml",
     "onLanguage:json",
-    "onLanguage:terraform"
+    "onLanguage:python",
+    "onLanguage:terraform",
+    "onLanguage:typescript",
+    "onLanguage:yaml"
   ],
   "main": "./out/extension.js",
   "scripts": {
@@ -96,6 +98,27 @@
         "extensions": [
           ".tf",
           ".tfvars"
+        ]
+      },
+      {
+        "id": "python",
+        "aliases": [
+          "Python",
+          "python"
+        ],
+        "extensions": [
+          ".py"
+        ]
+      },
+      {
+        "id": "typescript",
+        "aliases": [
+          "TypeScript",
+          "typescript"
+        ],
+        "extensions": [
+          ".ts",
+          ".tsx"
         ]
       }
     ]
