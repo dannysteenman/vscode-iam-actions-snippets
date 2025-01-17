@@ -4,6 +4,13 @@ Changelog
 
 (unreleased)
 ------------
+- Feat(extension): Add TypeScript and Python support for action
+  completions. [Danny Steenman]
+
+
+1.16.0 (2025-01-16)
+-------------------
+- Build: auto-update snippets to version: 1.16.0. [Github Actions]
 - Feat(vscode-extension): Improve IAM action hover with enhanced
   markdown display. [Danny Steenman]
 
