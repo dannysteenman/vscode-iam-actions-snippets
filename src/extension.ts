@@ -109,7 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Register completion provider
   disposable.push(
     vscode.languages.registerCompletionItemProvider(
-      ['json', 'yaml', 'yml', 'terraform'],
+      ['json', 'yaml', 'yml', 'terraform', 'typescript', 'python'],
       {
         async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
           if (await isBelowActionKey(document, position)) {
@@ -158,6 +158,72 @@ export function activate(context: vscode.ExtensionContext) {
                         ];
                       }
                     }
+                  } else if (document.languageId === 'typescript') {
+                    const lineText = document.lineAt(position.line).text;
+                    const currentLineStripped = lineText.trim();
+                    const nextLineText =
+                      position.line + 1 < document.lineCount ? document.lineAt(position.line + 1).text : '';
+                    const nextLineStripped = nextLineText.trim();
+
+                    const isInQuotes =
+                      currentLineStripped.indexOf("'") !== -1 &&
+                      currentLineStripped.lastIndexOf("'") > currentLineStripped.indexOf("'");
+                    const isFirstItem = currentLineStripped.endsWith('[') || currentLineStripped === '';
+                    const isLastItem = currentLineStripped.endsWith(']') || nextLineStripped.startsWith(']');
+
+                    if (!isInQuotes) {
+                      let insertText = `'${action}'`;
+                      if (isFirstItem && currentLineStripped.endsWith('[')) {
+                        insertText = '\n  ' + insertText;
+                      }
+                      if (!isLastItem && !currentLineStripped.endsWith(',') && !currentLineStripped.endsWith('[')) {
+                        insertText += ',';
+                      }
+                      item.insertText = insertText;
+                    } else {
+                      item.insertText = action;
+                      if (!isLastItem) {
+                        item.additionalTextEdits = [
+                          vscode.TextEdit.insert(
+                            new vscode.Position(position.line, position.character + action.length),
+                            ',',
+                          ),
+                        ];
+                      }
+                    }
+                  } else if (document.languageId === 'python') {
+                    const lineText = document.lineAt(position.line).text;
+                    const currentLineStripped = lineText.trim();
+                    const nextLineText =
+                      position.line + 1 < document.lineCount ? document.lineAt(position.line + 1).text : '';
+                    const nextLineStripped = nextLineText.trim();
+
+                    const isInQuotes =
+                      currentLineStripped.indexOf('"') !== -1 &&
+                      currentLineStripped.lastIndexOf('"') > currentLineStripped.indexOf('"');
+                    const isFirstItem = currentLineStripped.endsWith('[') || currentLineStripped === '';
+                    const isLastItem = currentLineStripped.endsWith(']') || nextLineStripped.startsWith(']');
+
+                    if (!isInQuotes) {
+                      let insertText = `"${action}"`;
+                      if (isFirstItem && currentLineStripped.endsWith('[')) {
+                        insertText = '\n    ' + insertText; // Use 4 spaces for Python indentation
+                      }
+                      if (!isLastItem && !currentLineStripped.endsWith(',') && !currentLineStripped.endsWith('[')) {
+                        insertText += ',';
+                      }
+                      item.insertText = insertText;
+                    } else {
+                      item.insertText = action;
+                      if (!isLastItem) {
+                        item.additionalTextEdits = [
+                          vscode.TextEdit.insert(
+                            new vscode.Position(position.line, position.character + action.length),
+                            ',',
+                          ),
+                        ];
+                      }
+                    }
                   } else {
                     item.insertText = action;
                   }
@@ -171,15 +237,16 @@ export function activate(context: vscode.ExtensionContext) {
           return undefined;
         },
       },
-      '"', // Trigger when typing a quote
+      '"', // Trigger when typing a double quote
+      "'", // Trigger when typing a single quote
     ),
   );
 
   // Register hover provider
   disposable.push(
-    vscode.languages.registerHoverProvider(['yaml', 'yml', 'json', 'terraform'], {
+    vscode.languages.registerHoverProvider(['yaml', 'yml', 'json', 'terraform', 'typescript', 'python'], {
       async provideHover(document: vscode.TextDocument, position: vscode.Position) {
-        const actionRegex = /[a-zA-Z0-9]+:[a-zA-Z0-9*]+/;
+        const actionRegex = /["'][a-zA-Z0-9]+:[a-zA-Z0-9*]+["']|[a-zA-Z0-9]+:[a-zA-Z0-9*]+/;
         const range = document.getWordRangeAtPosition(position, actionRegex);
 
         if (range) {
@@ -301,6 +368,42 @@ async function isBelowActionKey(document: vscode.TextDocument, position: vscode.
         !trimmedLine.startsWith('- ') &&
         !trimmedLine.startsWith('#')
       ) {
+        break;
+      }
+    }
+  }
+
+  if (document.languageId === 'typescript') {
+    const lines = text.split('\n').reverse();
+    let inActionsProp = false;
+    for (const line of lines) {
+      const trimmedLine = line.trim().toLowerCase();
+      if (trimmedLine.includes('actions:') && trimmedLine.includes('[')) {
+        inActionsProp = true;
+        return true;
+      }
+      if (inActionsProp && (trimmedLine.startsWith(']') || trimmedLine.endsWith('],'))) {
+        break;
+      }
+      if (trimmedLine.startsWith('new') || trimmedLine.includes('{')) {
+        break;
+      }
+    }
+  }
+
+  if (document.languageId === 'python') {
+    const lines = text.split('\n').reverse();
+    let inActionsProp = false;
+    for (const line of lines) {
+      const trimmedLine = line.trim().toLowerCase();
+      if (trimmedLine.startsWith('actions=') && trimmedLine.includes('[')) {
+        inActionsProp = true;
+        return true;
+      }
+      if (inActionsProp && (trimmedLine.endsWith(']') || trimmedLine.endsWith('],'))) {
+        break;
+      }
+      if (trimmedLine.startsWith('iam.policystatement(') || trimmedLine.endsWith('=')) {
         break;
       }
     }
