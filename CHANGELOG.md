@@ -4,6 +4,13 @@ Changelog
 
 (unreleased)
 ------------
+- Chore(package.json): Update activation events and language support.
+  [Danny Steenman]
+
+
+1.17.0 (2025-01-17)
+-------------------
+- Build: auto-update snippets to version: 1.17.0. [Github Actions]
 - Feat(extension): Add TypeScript and Python support for action
   completions. [Danny Steenman]
 
