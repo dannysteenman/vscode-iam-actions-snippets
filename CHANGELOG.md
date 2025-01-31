@@ -2,8 +2,9 @@ Changelog
 =========
 
 
-(unreleased)
-------------
+1.18.0 (2025-01-24)
+-------------------
+- Build: auto-update snippets to version: 1.18.0. [Github Actions]
 - Chore(package.json): Update activation events and language support.
   [Danny Steenman]
 
