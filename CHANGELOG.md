@@ -4,6 +4,13 @@ Changelog
 
 (unreleased)
 ------------
+- Refactor(extension): Improve debug logging and context detection
+  logic. [Danny Steenman]
+
+
+1.20.0 (2025-02-05)
+-------------------
+- Build: auto-update snippets to version: 1.20.0. [Github Actions]
 - Refactor(extension): Simplify action key detection logic. [Danny
   Steenman]
 

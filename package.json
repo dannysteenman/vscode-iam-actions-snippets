@@ -3,7 +3,7 @@
   "displayName": "AWS IAM Actions Snippets",
   "description": "Adds snippets for all the AWS IAM Actions in VS Code.",
   "author": "Danny Steenman",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "publisher": "dannysteenman",
   "icon": "images/iam-actions-snippets-extension-icon.png",
   "homepage": "https://towardsthecloud.com",
