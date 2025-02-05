@@ -1,9 +1,16 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { CompletionItem, CompletionItemKind, type Disposable, Hover, MarkdownString } from 'vscode';
+import { type Disposable, Hover, MarkdownString } from 'vscode';
 
-let outputChannel: vscode.OutputChannel;
+const DEBUG_ENABLED = false;
+export const outputChannel = vscode.window.createOutputChannel('IAM Action Snippets');
+
+export function log(message: string) {
+  if (DEBUG_ENABLED) {
+    outputChannel.appendLine(`[DEBUG] ${message}`);
+  }
+}
 
 interface IamActionData {
   access_level: string;
@@ -55,11 +62,9 @@ class IamActionMappings {
         }
       }
 
-      outputChannel.appendLine(
-        `Loaded ${this.iamActionsMap.size} IAM actions across ${this.servicePrefixMap.size} services`,
-      );
+      log(`Loaded ${this.iamActionsMap.size} IAM actions across ${this.servicePrefixMap.size} services`);
     } catch (error) {
-      outputChannel.appendLine(`Error loading IAM actions: ${error}`);
+      log(`Error loading IAM actions: ${error}`);
     }
   }
 
@@ -100,8 +105,11 @@ class IamActionMappings {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  outputChannel = vscode.window.createOutputChannel('IAM Action Snippets');
-  outputChannel.appendLine('IAM Action Snippets extension activated');
+  if (DEBUG_ENABLED) {
+    log('IAM Action Snippets extension activated (debug mode)');
+  } else {
+    outputChannel.appendLine('IAM Action Snippets extension activated');
+  }
 
   const iamActionMappings = new IamActionMappings();
   const disposable: Disposable[] = [];
@@ -113,7 +121,7 @@ export function activate(context: vscode.ExtensionContext) {
       {
         async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
           if (await isBelowActionKey(document, position)) {
-            outputChannel.appendLine(`Providing completion items at position: ${position.line}:${position.character}`);
+            log(`Providing completion items at position: ${position.line}:${position.character}`);
             const allActions = await iamActionMappings.getAllIamActions();
             return Promise.all(
               allActions.map(async (action) => {
@@ -251,7 +259,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (range) {
           const word = document.getText(range).replace(/^["']|["']$/g, '');
-          outputChannel.appendLine(`Providing hover for: ${word}`);
+          log(`Providing hover for: ${word}`);
 
           if (word.includes('*')) {
             const matchingActions = await iamActionMappings.getMatchingActions(word);
@@ -323,26 +331,25 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-  outputChannel.appendLine('IAM Action Snippets extension deactivated');
+  log('IAM Action Snippets extension deactivated');
 }
 
 async function isBelowActionKey(document: vscode.TextDocument, position: vscode.Position): Promise<boolean> {
-  const maxLinesUp = 40;
-  const startLine = Math.max(0, position.line - maxLinesUp);
-  const text = document.getText(new vscode.Range(startLine, 0, position.line, position.character));
+  // Use the full text from the top of the document until the current position
+  const text = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
 
+  // JSON and Terraform
   if (document.languageId === 'json' || document.languageId === 'terraform') {
     const lines = text.split('\n').reverse();
+    const jsonRegex = /"action"\s*:\s*\[/i;
+    const terraformRegex = /action\s*=\s*\[/i;
     for (const line of lines) {
-      const trimmedLine = line.trim().toLowerCase();
-      if (document.languageId === 'json') {
-        if (trimmedLine.includes('"action"') && trimmedLine.includes('[')) {
-          return true;
-        }
-      } else if (document.languageId === 'terraform') {
-        if (trimmedLine.includes('action') && trimmedLine.includes('=') && trimmedLine.includes('[')) {
-          return true;
-        }
+      const trimmedLine = line.trim();
+      if (document.languageId === 'json' && jsonRegex.test(trimmedLine)) {
+        return true;
+      }
+      if (document.languageId === 'terraform' && terraformRegex.test(trimmedLine)) {
+        return true;
       }
       if (trimmedLine.startsWith('}') || trimmedLine.startsWith(']')) {
         break;
@@ -350,50 +357,94 @@ async function isBelowActionKey(document: vscode.TextDocument, position: vscode.
     }
   }
 
+  // YAML / YML
   if (document.languageId === 'yaml' || document.languageId === 'yml') {
-    const lines = text.split('\n').reverse();
-    for (const line of lines) {
-      const trimmedLine = line.trim().toLowerCase();
-      if (
-        trimmedLine.startsWith('action:') ||
-        trimmedLine.startsWith('- action:') ||
-        trimmedLine.startsWith('notaction:') ||
-        trimmedLine.startsWith('- notaction:')
-      ) {
-        return true;
+    const allLines = document.getText().split('\n');
+    const currentLineIndex = position.line;
+    const currentLine = allLines[currentLineIndex] || '';
+    const currentIndent = currentLine.search(/\S/);
+    log(`[YAML] Current line (${currentLineIndex}): ${currentLine}`);
+    log(`[YAML] Current indent: ${currentIndent}`);
+
+    // If the current line itself is a key, disable autocomplete.
+    if (/^[-\s]*\w+\s*:/.test(currentLine)) {
+      log('[YAML] Current line appears to be a key, disabling autocomplete');
+      return false;
+    }
+
+    // Scan upward for the nearest parent key with lower indent
+    for (let i = currentLineIndex - 1; i >= 0; i--) {
+      const line = allLines[i];
+      const trimmedLine = line.trim();
+      if (trimmedLine === '' || trimmedLine.startsWith('#')) {
+        continue;
       }
-      if (
-        trimmedLine !== '' &&
-        !trimmedLine.startsWith('-') &&
-        !trimmedLine.startsWith('- ') &&
-        !trimmedLine.startsWith('#')
-      ) {
-        break;
+      if (!line.includes(':')) {
+        continue;
+      }
+      log(`[YAML] Scanning line ${i}: ${line}`);
+      const match = line.match(/^([ \t]*)(?:-\s*)?(\w+)\s*:/);
+      if (match) {
+        const parentIndent = match[1].length;
+        if (parentIndent < currentIndent) {
+          const parentKey = match[2].toLowerCase();
+          log(`[YAML] Found parent key: ${parentKey} at indent: ${parentIndent}`);
+          if (parentKey === 'action') {
+            log(`[YAML] Position is under 'action' key, enabling autocomplete`);
+            return true;
+          }
+          log(`[YAML] Parent key is not 'action', stopping search.`);
+          break;
+        }
       }
     }
   }
 
+  // CDK TypeScript
   if (document.languageId === 'typescript') {
-    const lines = text.split('\n').reverse();
-    for (const line of lines) {
-      const trimmedLine = line.trim().toLowerCase();
-      if (trimmedLine.includes('actions:') && trimmedLine.includes('[')) {
-        return true;
-      }
-      if (trimmedLine.startsWith('}') || trimmedLine.startsWith(']')) {
+    const allLines = document.getText().split('\n');
+    const currentLineIndex = position.line;
+    const currentLine = allLines[currentLineIndex] || '';
+    const currentIndent = currentLine.search(/\S/);
+    log(`[TS] Current line (${currentLineIndex}): ${currentLine}`);
+    log(`[TS] Current indent: ${currentIndent}`);
+
+    const actionsRegex = /actions\s*:\s*\[/;
+    for (let i = currentLineIndex; i >= 0; i--) {
+      const line = allLines[i];
+      log(`[TS] Scanning line ${i}: ${line}`);
+      if (actionsRegex.test(line)) {
+        const match = line.match(/^(\s*)/);
+        const parentIndent = match ? match[1].length : 0;
+        if (currentIndent > parentIndent) {
+          log(`[TS] Found actions array starting at line ${i}, enabling autocomplete`);
+          return true;
+        }
         break;
       }
     }
   }
 
+  // CDK Python
   if (document.languageId === 'python') {
-    const lines = text.split('\n').reverse();
-    for (const line of lines) {
-      const trimmedLine = line.trim().toLowerCase();
-      if (trimmedLine.startsWith('actions=') && trimmedLine.includes('[')) {
-        return true;
-      }
-      if (trimmedLine.endsWith(']') || trimmedLine.endsWith('],')) {
+    const allLines = document.getText().split('\n');
+    const currentLineIndex = position.line;
+    const currentLine = allLines[currentLineIndex] || '';
+    const currentIndent = currentLine.search(/\S/);
+    log(`[Python] Current line (${currentLineIndex}): ${currentLine}`);
+    log(`[Python] Current indent: ${currentIndent}`);
+
+    const actionsRegex = /actions\s*=\s*\[/;
+    for (let i = currentLineIndex; i >= 0; i--) {
+      const line = allLines[i];
+      log(`[Python] Scanning line ${i}: ${line}`);
+      if (actionsRegex.test(line)) {
+        const match = line.match(/^(\s*)/);
+        const parentIndent = match ? match[1].length : 0;
+        if (currentIndent > parentIndent) {
+          log(`[Python] Found actions list starting at line ${i}, enabling autocomplete`);
+          return true;
+        }
         break;
       }
     }
