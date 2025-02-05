@@ -2,6 +2,17 @@ Changelog
 =========
 
 
+(unreleased)
+------------
+- Refactor(extension): Simplify action key detection logic. [Danny
+  Steenman]
+
+
+1.19.0 (2025-01-31)
+-------------------
+- Build: auto-update snippets to version: 1.19.0. [Github Actions]
+
+
 1.18.0 (2025-01-24)
 -------------------
 - Build: auto-update snippets to version: 1.18.0. [Github Actions]
