@@ -375,17 +375,12 @@ async function isBelowActionKey(document: vscode.TextDocument, position: vscode.
 
   if (document.languageId === 'typescript') {
     const lines = text.split('\n').reverse();
-    let inActionsProp = false;
     for (const line of lines) {
       const trimmedLine = line.trim().toLowerCase();
       if (trimmedLine.includes('actions:') && trimmedLine.includes('[')) {
-        inActionsProp = true;
         return true;
       }
-      if (inActionsProp && (trimmedLine.startsWith(']') || trimmedLine.endsWith('],'))) {
-        break;
-      }
-      if (trimmedLine.startsWith('new') || trimmedLine.includes('{')) {
+      if (trimmedLine.startsWith('}') || trimmedLine.startsWith(']')) {
         break;
       }
     }
@@ -393,17 +388,12 @@ async function isBelowActionKey(document: vscode.TextDocument, position: vscode.
 
   if (document.languageId === 'python') {
     const lines = text.split('\n').reverse();
-    let inActionsProp = false;
     for (const line of lines) {
       const trimmedLine = line.trim().toLowerCase();
       if (trimmedLine.startsWith('actions=') && trimmedLine.includes('[')) {
-        inActionsProp = true;
         return true;
       }
-      if (inActionsProp && (trimmedLine.endsWith(']') || trimmedLine.endsWith('],'))) {
-        break;
-      }
-      if (trimmedLine.startsWith('iam.policystatement(') || trimmedLine.endsWith('=')) {
+      if (trimmedLine.endsWith(']') || trimmedLine.endsWith('],')) {
         break;
       }
     }
