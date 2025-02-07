@@ -2,8 +2,9 @@ Changelog
 =========
 
 
-(unreleased)
-------------
+1.21.0 (2025-02-05)
+-------------------
+- Build: auto-update snippets to version: 1.21.0. [Github Actions]
 - Refactor(extension): Improve debug logging and context detection
   logic. [Danny Steenman]
 
