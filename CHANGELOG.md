@@ -2,6 +2,17 @@ Changelog
 =========
 
 
+(unreleased)
+------------
+- Chore: update repository links to reflect new ownership by
+  'towardsthecloud' [Danny Steenman]
+
+
+1.31.0 (2025-04-11)
+-------------------
+- Build: auto-update snippets to version: 1.31.0. [Github Actions]
+
+
 1.30.0 (2025-04-04)
 -------------------
 - Build: auto-update snippets to version: 1.30.0. [Github Actions]
