@@ -10,7 +10,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dannysteenman/vscode-iam-actions-snippets.git"
+    "url": "https://github.com/towardsthecloud/vscode-iam-actions-snippets.git"
   },
   "engines": {
     "vscode": "^1.31.0"
@@ -19,16 +19,8 @@
     "color": "#2B2C33",
     "theme": "dark"
   },
-  "categories": [
-    "Snippets"
-  ],
-  "keywords": [
-    "aws",
-    "policy",
-    "iam",
-    "actions",
-    "security"
-  ],
+  "categories": ["Snippets"],
+  "keywords": ["aws", "policy", "iam", "actions", "security"],
   "badges": [
     {
       "url": "https://img.shields.io/visual-studio-marketplace/v/dannysteenman.iam-actions-snippets",
@@ -68,58 +60,28 @@
     "languages": [
       {
         "id": "json",
-        "aliases": [
-          "JSON",
-          "json"
-        ],
-        "extensions": [
-          ".json",
-          ".template"
-        ]
+        "aliases": ["JSON", "json"],
+        "extensions": [".json", ".template"]
       },
       {
         "id": "yaml",
-        "aliases": [
-          "YAML",
-          "yaml"
-        ],
-        "extensions": [
-          ".yaml",
-          ".yml",
-          ".template"
-        ]
+        "aliases": ["YAML", "yaml"],
+        "extensions": [".yaml", ".yml", ".template"]
       },
       {
         "id": "terraform",
-        "aliases": [
-          "Terraform",
-          "terraform"
-        ],
-        "extensions": [
-          ".tf",
-          ".tfvars"
-        ]
+        "aliases": ["Terraform", "terraform"],
+        "extensions": [".tf", ".tfvars"]
       },
       {
         "id": "python",
-        "aliases": [
-          "Python",
-          "python"
-        ],
-        "extensions": [
-          ".py"
-        ]
+        "aliases": ["Python", "python"],
+        "extensions": [".py"]
       },
       {
         "id": "typescript",
-        "aliases": [
-          "TypeScript",
-          "typescript"
-        ],
-        "extensions": [
-          ".ts",
-          ".tsx"
-        ]
+        "aliases": ["TypeScript", "typescript"],
+        "extensions": [".ts", ".tsx"]
       }
     ]
   }
