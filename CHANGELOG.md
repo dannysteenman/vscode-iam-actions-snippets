@@ -2,6 +2,16 @@ Changelog
 =========
 
 
+(unreleased)
+------------
+- Docs: update README. [Danny Steenman]
+
+
+1.36.0 (2025-05-09)
+-------------------
+- Build: auto-update snippets to version: 1.36.0. [Github Actions]
+
+
 1.35.0 (2025-05-02)
 -------------------
 - Build: auto-update snippets to version: 1.35.0. [Github Actions]
